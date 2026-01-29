@@ -7,6 +7,7 @@ import {
     Card, CardHeader, CardTitle, CardContent, CardFooter,
     Modal, ModalFooter, Input, Select, Badge, Avatar
 } from '@/components/ui';
+import { Plus } from 'lucide-react';
 
 export default function InstancesPage() {
     const { authFetch } = useAuth();
@@ -100,9 +101,7 @@ export default function InstancesPage() {
                 description="Create project instances from templates"
                 action={
                     <Button onClick={() => setShowModal(true)} disabled={!canCreate}>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
+                        <Plus className="w-5 h-5" />
                         Create Instance
                     </Button>
                 }
@@ -122,33 +121,33 @@ export default function InstancesPage() {
                 />
             ) : (
                 <div className="space-y-6">
-                    {instances.map((instance) => (
-                        <Card key={instance._id}>
+                    {instances?.map((instance) => (
+                        <Card key={instance?._id}>
                             <CardHeader>
                                 <div>
-                                    <CardTitle>{instance.name}</CardTitle>
-                                    <p className="text-muted text-sm">Template: {instance.templateName}</p>
+                                    <CardTitle>{instance?.name}</CardTitle>
+                                    <p className="text-muted text-sm">Template: {instance?.templateName}</p>
                                 </div>
-                                <Badge variant="success">{instance.tasks?.length || 0} tasks</Badge>
+                                <Badge variant="success">{instance?.tasks?.length || 0} tasks</Badge>
                             </CardHeader>
 
                             <CardContent className="space-y-2">
-                                {instance.tasks?.map((task) => (
-                                    <div key={task._id} className="task-item">
-                                        <span className="task-order">{task.order}</span>
+                                {instance?.tasks?.map((task) => (
+                                    <div key={task?._id} className="task-item">
+                                        <span className="task-order">{task?.order}</span>
                                         <div className="flex-1">
-                                            <span className="text-foreground">{task.name}</span>
+                                            <span className="text-foreground">{task?.name}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Avatar name={task.assignee?.name} size="sm" />
-                                            <span className="text-muted text-sm">{task.assignee?.name || 'Unassigned'}</span>
+                                            <Avatar name={task?.assignee?.name} size="sm" />
+                                            <span className="text-muted text-sm">{Ztask?.assignee?.name || 'Unassigned'}</span>
                                         </div>
                                     </div>
                                 ))}
                             </CardContent>
 
                             <CardFooter className="text-xs text-muted">
-                                Created: {new Date(instance.createdAt).toLocaleDateString()}
+                                Created: {new Date(instance?.createdAt).toLocaleDateString()}
                             </CardFooter>
                         </Card>
                     ))}

@@ -1,5 +1,6 @@
 'use client';
 
+import { Cross, X } from 'lucide-react';
 import { useEffect } from 'react';
 
 export function Modal({ isOpen, onClose, title, children, size = 'md' }) {
@@ -38,11 +39,9 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }) {
                     <h2 className="text-xl font-semibold text-foreground">{title}</h2>
                     <button
                         onClick={onClose}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-muted/20 transition-colors"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-muted/20 transition-colors cursor-pointer"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
                 {children}

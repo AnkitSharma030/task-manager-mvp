@@ -8,6 +8,7 @@ import {
     Modal, ModalFooter, Input, Badge, IconButton
 } from '@/components/ui';
 
+import { Minus, Plus } from 'lucide-react';
 export default function TemplatesPage() {
     const { authFetch } = useAuth();
     const [templates, setTemplates] = useState([]);
@@ -98,15 +99,13 @@ export default function TemplatesPage() {
                 description="Create reusable task templates for your projects"
                 action={
                     <Button onClick={() => setShowModal(true)}>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
+                        <Plus className="w-5 h-5" />
                         Create Template
                     </Button>
                 }
             />
 
-            {templates.length === 0 ? (
+            {templates?.length === 0 ? (
                 <EmptyState
                     title="No templates found"
                     description="Create your first template to get started!"
@@ -184,9 +183,7 @@ export default function TemplatesPage() {
                                             onClick={() => removeTask(index)}
                                             className="text-danger hover:bg-danger/10"
                                         >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
+                                            <Minus className="w-4 h-4" />
                                         </IconButton>
                                     )}
                                 </div>
@@ -195,11 +192,9 @@ export default function TemplatesPage() {
                         <button
                             type="button"
                             onClick={addTask}
-                            className="mt-2 text-sm text-primary hover:underline flex items-center gap-1"
+                            className="mt-2 text-sm text-primary hover:underline flex items-center gap-1 cursor-pointer"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
+                            <Plus className="w-4 h-4" />
                             Add another task
                         </button>
                     </div>

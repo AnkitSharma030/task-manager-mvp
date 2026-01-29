@@ -7,6 +7,7 @@ import {
     Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableEmpty,
     Modal, ModalFooter, Input, Select, Badge
 } from '@/components/ui';
+import { UserPlus } from 'lucide-react';
 
 export default function UsersPage() {
     const { authFetch } = useAuth();
@@ -72,9 +73,7 @@ export default function UsersPage() {
                 description="Manage system users and their roles"
                 action={
                     <Button onClick={() => setShowModal(true)}>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
+                        <UserPlus className="w-5 h-5" />
                         Add User
                     </Button>
                 }

@@ -45,7 +45,7 @@ export function Button({
 export function IconButton({ children, className = '', ...props }) {
     return (
         <button
-            className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${className}`}
+            className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${className} cursor-pointer`}
             {...props}
         >
             {children}
