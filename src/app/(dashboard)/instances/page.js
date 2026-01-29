@@ -1,8 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import {
+    PageHeader, Button, Alert, LoadingState, EmptyState,
+    Card, CardHeader, CardTitle, CardContent, CardFooter,
+    Modal, ModalFooter, Input, Select, Badge, Avatar
+} from '@/components/ui';
 
 export default function InstancesPage() {
+    const { authFetch } = useAuth();
     const [instances, setInstances] = useState([]);
     const [templates, setTemplates] = useState([]);
     const [users, setUsers] = useState([]);
@@ -20,9 +27,9 @@ export default function InstancesPage() {
     const fetchData = async () => {
         try {
             const [instancesRes, templatesRes, usersRes] = await Promise.all([
-                fetch('/api/instances'),
-                fetch('/api/templates'),
-                fetch('/api/users'),
+                authFetch('/api/instances'),
+                authFetch('/api/templates'),
+                authFetch('/api/users'),
             ]);
 
             const [instancesData, templatesData, usersData] = await Promise.all([
@@ -48,7 +55,7 @@ export default function InstancesPage() {
         setSubmitting(true);
 
         try {
-            const res = await fetch('/api/instances', {
+            const res = await authFetch('/api/instances', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -60,10 +67,9 @@ export default function InstancesPage() {
                 throw new Error(data.error || 'Failed to create instance');
             }
 
-            setSuccessMessage(`Instance created successfully! ${data.tasksCreated} tasks assigned to ${data.assigneeName}.`);
+            setSuccessMessage(`Instance created! ${data.tasksCreated} tasks assigned to ${data.assigneeName}.`);
 
-            // Refresh instances list
-            const instancesRes = await fetch('/api/instances');
+            const instancesRes = await authFetch('/api/instances');
             const instancesData = await instancesRes.json();
             setInstances(Array.isArray(instancesData) ? instancesData : []);
 
@@ -81,183 +87,131 @@ export default function InstancesPage() {
 
     const selectedTemplate = templates.find((t) => t._id === formData.templateId);
 
+    if (loading) {
+        return <LoadingState message="Loading instances..." />;
+    }
+
+    const canCreate = templates.length > 0 && users.length > 0;
+
     return (
         <div>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground">Instances</h1>
-                    <p className="text-muted mt-1">Create project instances from templates</p>
-                </div>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="btn btn-primary"
-                    disabled={templates.length === 0 || users.length === 0}
-                >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Create Instance
-                </button>
-            </div>
+            <PageHeader
+                title="Instances"
+                description="Create project instances from templates"
+                action={
+                    <Button onClick={() => setShowModal(true)} disabled={!canCreate}>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Create Instance
+                    </Button>
+                }
+            />
 
-            {/* Warning if no templates or users */}
-            {!loading && (templates.length === 0 || users.length === 0) && (
-                <div className="card mb-6 border-warning/30 bg-warning/5">
-                    <p className="text-warning">
-                        {templates.length === 0 && "You need to create a template first. "}
-                        {users.length === 0 && "You need to create users first."}
-                    </p>
-                </div>
+            {!canCreate && (
+                <Alert variant="warning" className="mb-6">
+                    {templates.length === 0 && "You need to create a template first. "}
+                    {users.length === 0 && "You need to create users first."}
+                </Alert>
             )}
 
-            {/* Instances List */}
-            {loading ? (
-                <div className="text-center py-12 text-muted">Loading instances...</div>
-            ) : instances.length === 0 ? (
-                <div className="card text-center py-12">
-                    <p className="text-muted">No instances found. Create your first instance from a template!</p>
-                </div>
+            {instances.length === 0 ? (
+                <EmptyState
+                    title="No instances found"
+                    description="Create your first instance from a template!"
+                />
             ) : (
                 <div className="space-y-6">
                     {instances.map((instance) => (
-                        <div key={instance._id} className="card">
-                            <div className="flex items-start justify-between mb-4">
+                        <Card key={instance._id}>
+                            <CardHeader>
                                 <div>
-                                    <h3 className="font-semibold text-foreground text-lg">{instance.name}</h3>
+                                    <CardTitle>{instance.name}</CardTitle>
                                     <p className="text-muted text-sm">Template: {instance.templateName}</p>
                                 </div>
-                                <span className="badge bg-success/20 text-success">
-                                    {instance.tasks?.length || 0} tasks
-                                </span>
-                            </div>
+                                <Badge variant="success">{instance.tasks?.length || 0} tasks</Badge>
+                            </CardHeader>
 
-                            {/* Tasks list */}
-                            <div className="space-y-2">
-                                {instance.tasks?.map((task, index) => (
+                            <CardContent className="space-y-2">
+                                {instance.tasks?.map((task) => (
                                     <div key={task._id} className="task-item">
                                         <span className="task-order">{task.order}</span>
                                         <div className="flex-1">
                                             <span className="text-foreground">{task.name}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm text-primary font-medium">
-                                                {task.assignee?.name?.charAt(0) || '?'}
-                                            </div>
+                                            <Avatar name={task.assignee?.name} size="sm" />
                                             <span className="text-muted text-sm">{task.assignee?.name || 'Unassigned'}</span>
                                         </div>
                                     </div>
                                 ))}
-                            </div>
+                            </CardContent>
 
-                            <div className="mt-4 pt-4 border-t border-border text-xs text-muted">
+                            <CardFooter className="text-xs text-muted">
                                 Created: {new Date(instance.createdAt).toLocaleDateString()}
-                            </div>
-                        </div>
+                            </CardFooter>
+                        </Card>
                     ))}
                 </div>
             )}
 
-            {/* Create Instance Modal */}
-            {showModal && (
-                <div className="modal-backdrop" onClick={() => setShowModal(false)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h2 className="text-xl font-semibold text-foreground mb-6">Create Instance</h2>
+            <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Create Instance">
+                {error && <Alert variant="error" className="mb-4">{error}</Alert>}
+                {successMessage && <Alert variant="success" className="mb-4">{successMessage}</Alert>}
 
-                        {error && (
-                            <div className="mb-4 p-4 rounded-xl bg-danger/10 border border-danger/30 text-red-400 text-sm">
-                                {error}
-                            </div>
-                        )}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <Input
+                        label="Instance Name"
+                        placeholder="e.g., Company Website v1"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
+                    />
 
-                        {successMessage && (
-                            <div className="mb-4 p-4 rounded-xl bg-success/10 border border-success/30 text-green-400 text-sm">
-                                {successMessage}
-                            </div>
-                        )}
+                    <Select
+                        label="Select Template"
+                        placeholder="Choose a template..."
+                        value={formData.templateId}
+                        onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
+                        options={templates.map((t) => ({ value: t._id, label: `${t.name} (${t.tasks.length} tasks)` }))}
+                        required
+                    />
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="label">Instance Name</label>
-                                <input
-                                    type="text"
-                                    className="input"
-                                    placeholder="e.g., Company Website v1"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="label">Select Template</label>
-                                <select
-                                    className="select"
-                                    value={formData.templateId}
-                                    onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
-                                    required
-                                >
-                                    <option value="">Choose a template...</option>
-                                    {templates.map((template) => (
-                                        <option key={template._id} value={template._id}>
-                                            {template.name} ({template.tasks.length} tasks)
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Show template tasks preview */}
-                            {selectedTemplate && (
-                                <div className="p-4 rounded-xl bg-muted/10 border border-border">
-                                    <p className="text-sm text-muted mb-2">Tasks that will be created:</p>
-                                    <div className="space-y-1">
-                                        {selectedTemplate.tasks.map((task, index) => (
-                                            <div key={index} className="text-sm text-foreground flex items-center gap-2">
-                                                <span className="text-muted">{index + 1}.</span> {task}
-                                            </div>
-                                        ))}
+                    {selectedTemplate && (
+                        <div className="p-4 rounded-xl bg-muted/10 border border-border">
+                            <p className="text-sm text-muted mb-2">Tasks that will be created:</p>
+                            <div className="space-y-1">
+                                {selectedTemplate.tasks.map((task, index) => (
+                                    <div key={index} className="text-sm text-foreground flex items-center gap-2">
+                                        <span className="text-muted">{index + 1}.</span> {task}
                                     </div>
-                                </div>
-                            )}
-
-                            <div>
-                                <label className="label">Assign To (Doer)</label>
-                                <select
-                                    className="select"
-                                    value={formData.assigneeId}
-                                    onChange={(e) => setFormData({ ...formData, assigneeId: e.target.value })}
-                                    required
-                                >
-                                    <option value="">Select a user...</option>
-                                    {users.map((user) => (
-                                        <option key={user._id} value={user._id}>
-                                            {user.name} ({user.role})
-                                        </option>
-                                    ))}
-                                </select>
-                                <p className="text-xs text-muted mt-1">All tasks will be assigned to this user</p>
+                                ))}
                             </div>
+                        </div>
+                    )}
 
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="btn btn-secondary flex-1"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="btn btn-primary flex-1"
-                                    disabled={submitting}
-                                >
-                                    {submitting ? 'Creating...' : 'Create Instance'}
-                                </button>
-                            </div>
-                        </form>
+                    <div>
+                        <Select
+                            label="Assign To (Doer)"
+                            placeholder="Select a user..."
+                            value={formData.assigneeId}
+                            onChange={(e) => setFormData({ ...formData, assigneeId: e.target.value })}
+                            options={users.map((u) => ({ value: u._id, label: `${u.name} (${u.role})` }))}
+                            required
+                        />
+                        <p className="text-xs text-muted mt-1">All tasks will be assigned to this user</p>
                     </div>
-                </div>
-            )}
+
+                    <ModalFooter>
+                        <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowModal(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" className="flex-1" loading={submitting}>
+                            Create Instance
+                        </Button>
+                    </ModalFooter>
+                </form>
+            </Modal>
         </div>
     );
 }

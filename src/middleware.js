@@ -23,44 +23,35 @@ export async function middleware(request) {
         return NextResponse.next();
     }
 
-    // Get token from cookie
-    const token = request.cookies.get('auth-token')?.value;
+    // For API routes, check Bearer token in Authorization header
+    if (pathname.startsWith('/api')) {
+        const authHeader = request.headers.get('Authorization');
 
-    if (!token) {
-        // Redirect to login for page requests
-        if (!pathname.startsWith('/api')) {
-            return NextResponse.redirect(new URL('/login', request.url));
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        // Return 401 for API requests
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
-    try {
-        // Verify token
-        const { payload } = await jwtVerify(token, secret);
+        const token = authHeader.substring(7);
 
-        // Check if user is admin
-        if (payload.role !== 'Admin') {
-            if (!pathname.startsWith('/api')) {
-                return NextResponse.redirect(new URL('/login', request.url));
+        try {
+            const { payload } = await jwtVerify(token, secret);
+
+            if (payload.role !== 'Admin') {
+                return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
             }
-            return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-        }
 
-        // Add user info to request headers for API routes
-        const response = NextResponse.next();
-        response.headers.set('x-user-id', payload.userId);
-        response.headers.set('x-user-email', payload.email);
-        response.headers.set('x-user-role', payload.role);
+            // Add user info to request headers
+            const response = NextResponse.next();
+            response.headers.set('x-user-id', payload.userId);
+            response.headers.set('x-user-email', payload.email);
+            response.headers.set('x-user-role', payload.role);
 
-        return response;
-    } catch (error) {
-        // Invalid token
-        if (!pathname.startsWith('/api')) {
-            return NextResponse.redirect(new URL('/login', request.url));
+            return response;
+        } catch (error) {
+            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
         }
-        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
+    return NextResponse.next();
 }
 
 export const config = {

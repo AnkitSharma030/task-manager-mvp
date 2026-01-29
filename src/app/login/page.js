@@ -1,14 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { Button, Input, Alert } from '@/components/ui';
 
 export default function LoginPage() {
     const router = useRouter();
+    const { login, user, loading: authLoading } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (!authLoading && user) {
+            router.push('/');
+        }
+    }, [user, authLoading, router]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -16,26 +25,22 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || 'Login failed');
-            }
-
+            await login(email, password);
             router.push('/');
-            router.refresh();
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
         }
     };
+
+    if (authLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4">
@@ -59,62 +64,47 @@ export default function LoginPage() {
 
                 {/* Error message */}
                 {error && (
-                    <div className="mb-6 p-4 rounded-xl bg-danger/10 border border-danger/30 text-red-400 text-sm">
+                    <Alert variant="error" className="mb-6">
                         {error}
-                    </div>
+                    </Alert>
                 )}
 
                 {/* Login form */}
                 <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                        <label className="label">Email</label>
-                        <input
-                            type="email"
-                            className="input"
-                            placeholder="admin@taskmanager.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                    </div>
+                    <Input
+                        label="Email"
+                        type="email"
+                        placeholder="admin@taskmanager.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
 
-                    <div>
-                        <label className="label">Password</label>
-                        <input
-                            type="password"
-                            className="input"
-                            placeholder="Enter your password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                    </div>
+                    <Input
+                        label="Password"
+                        type="password"
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
 
-                    <button
+                    <Button
                         type="submit"
-                        className="btn btn-primary w-full"
+                        className="w-full"
+                        loading={loading}
                         disabled={loading}
                     >
-                        {loading ? (
-                            <>
-                                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                </svg>
-                                Signing in...
-                            </>
-                        ) : (
-                            'Sign In'
-                        )}
-                    </button>
+                        Sign In
+                    </Button>
                 </form>
 
                 {/* Info box */}
-                <div className="mt-6 p-4 rounded-xl bg-primary/10 border border-primary/30">
-                    <p className="text-sm text-muted text-center">
-                        <span className="text-primary font-medium">Admin Only:</span> Only users with Admin role can access this system.
+                <Alert variant="info" className="mt-6">
+                    <p className="text-center">
+                        <span className="font-medium">Admin Only:</span> Only Admin can access this system.
                     </p>
-                </div>
+                </Alert>
             </div>
         </div>
     );

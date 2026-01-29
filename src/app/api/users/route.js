@@ -8,7 +8,7 @@ export async function GET() {
     try {
         await connectDB();
 
-        const users = await User.find({})
+        const users = await User.find({ role: 'Member' })
             .sort({ createdAt: -1 })
             .lean();
 

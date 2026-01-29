@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { Card, CardContent, PageHeader, Button, LoadingState } from '@/components/ui';
 
 export default function DashboardPage() {
+    const { authFetch } = useAuth();
     const [stats, setStats] = useState({
         users: 0,
         templates: 0,
@@ -15,10 +18,10 @@ export default function DashboardPage() {
         async function fetchStats() {
             try {
                 const [usersRes, templatesRes, instancesRes, tasksRes] = await Promise.all([
-                    fetch('/api/users'),
-                    fetch('/api/templates'),
-                    fetch('/api/instances'),
-                    fetch('/api/tasks'),
+                    authFetch('/api/users'),
+                    authFetch('/api/templates'),
+                    authFetch('/api/instances'),
+                    authFetch('/api/tasks'),
                 ]);
 
                 const [users, templates, instances, tasks] = await Promise.all([
@@ -42,7 +45,7 @@ export default function DashboardPage() {
         }
 
         fetchStats();
-    }, []);
+    }, [authFetch]);
 
     const statsCards = [
         {
@@ -87,57 +90,56 @@ export default function DashboardPage() {
         },
     ];
 
+    if (loading) {
+        return <LoadingState message="Loading dashboard..." />;
+    }
+
     return (
         <div>
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-                <p className="text-muted mt-1">Welcome back! Here's an overview of your task management system.</p>
-            </div>
+            <PageHeader
+                title="Dashboard"
+                description="Welcome back! Here's an overview of your task management system."
+            />
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
                 {statsCards.map((card) => (
                     <div key={card.label} className="stats-card">
                         <div className={`icon bg-gradient-to-br ${card.color} text-white`}>
                             {card.icon}
                         </div>
-                        <div className="value">
-                            {loading ? (
-                                <div className="h-8 w-16 bg-muted/20 rounded animate-pulse" />
-                            ) : (
-                                card.value
-                            )}
-                        </div>
+                        <div className="value">{card.value}</div>
                         <div className="label">{card.label}</div>
                     </div>
                 ))}
             </div>
 
             {/* Quick Actions */}
-            <div className="card">
+            <Card>
                 <h2 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <a href="/users" className="btn btn-secondary justify-start">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                        </svg>
-                        Add New User
-                    </a>
-                    <a href="/templates" className="btn btn-secondary justify-start">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Create Template
-                    </a>
-                    <a href="/instances" className="btn btn-secondary justify-start">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Create Instance
-                    </a>
-                </div>
-            </div>
+                <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <Button variant="secondary" className="justify-start" onClick={() => window.location.href = '/users'}>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                            </svg>
+                            Add New User
+                        </Button>
+                        <Button variant="secondary" className="justify-start" onClick={() => window.location.href = '/templates'}>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Create Template
+                        </Button>
+                        <Button variant="secondary" className="justify-start" onClick={() => window.location.href = '/instances'}>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Create Instance
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

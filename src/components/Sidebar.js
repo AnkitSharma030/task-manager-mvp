@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
     {
@@ -53,55 +55,93 @@ const navItems = [
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const router = useRouter();
-
-    const handleLogout = async () => {
-        await fetch('/api/auth/logout', { method: 'POST' });
-        router.push('/login');
-        router.refresh();
-    };
+    const { logout, user } = useAuth();
+    const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <aside className="sidebar">
-            {/* Logo */}
-            <div className="flex items-center gap-3 mb-8 px-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                    </svg>
-                </div>
-                <div>
-                    <h1 className="font-bold text-foreground">Task Manager</h1>
-                    <p className="text-xs text-muted">Admin Panel</p>
-                </div>
-            </div>
+        <>
+            {/* Mobile hamburger button */}
+            <button
+                onClick={() => setIsOpen(true)}
+                className="lg:hidden fixed top-4 left-4 z-40 w-10 h-10 flex items-center justify-center rounded-xl bg-card border border-border text-foreground"
+            >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
 
-            {/* Navigation */}
-            <nav className="space-y-1">
-                {navItems.map((item) => (
-                    <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`sidebar-link ${pathname === item.href ? 'active' : ''}`}
-                    >
-                        {item.icon}
-                        {item.name}
-                    </Link>
-                ))}
-            </nav>
+            {/* Mobile overlay */}
+            {isOpen && (
+                <div
+                    className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                    onClick={() => setIsOpen(false)}
+                />
+            )}
 
-            {/* Logout button */}
-            <div className="absolute bottom-6 left-6 right-6">
+            {/* Sidebar */}
+            <aside className={`
+        sidebar z-50
+        fixed lg:fixed
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+                {/* Close button for mobile */}
                 <button
-                    onClick={handleLogout}
-                    className="sidebar-link w-full text-danger hover:bg-danger/10"
+                    onClick={() => setIsOpen(false)}
+                    className="lg:hidden absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-muted/20"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                    Logout
                 </button>
-            </div>
-        </aside>
+
+                {/* Logo */}
+                <div className="flex items-center gap-3 mb-8 px-2">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 className="font-bold text-foreground">Task Manager</h1>
+                        <p className="text-xs text-muted">Admin Panel</p>
+                    </div>
+                </div>
+
+                {/* Navigation */}
+                <nav className="space-y-1">
+                    {navItems.map((item) => (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setIsOpen(false)}
+                            className={`sidebar-link ${pathname === item.href ? 'active' : ''}`}
+                        >
+                            {item.icon}
+                            {item.name}
+                        </Link>
+                    ))}
+                </nav>
+
+                {/* User info & Logout */}
+                <div className="absolute bottom-6 left-6 right-6 space-y-3">
+                    {user && (
+                        <div className="px-2 py-2 text-sm">
+                            <p className="text-foreground font-medium truncate">{user.name}</p>
+                            <p className="text-muted text-xs truncate">{user.email}</p>
+                        </div>
+                    )}
+                    <button
+                        onClick={logout}
+                        className="sidebar-link w-full text-danger hover:bg-danger/10"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Logout
+                    </button>
+                </div>
+            </aside>
+        </>
     );
 }
