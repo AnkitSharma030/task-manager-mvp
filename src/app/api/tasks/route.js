@@ -1,39 +1,23 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
+import connectDB from '@/lib/mongodb';
+import Task from '@/models/Task';
 
 // GET - List all tasks with assignee and instance info
 export async function GET() {
     try {
-        const db = await getDb();
-        const tasksCollection = db.collection('tasks');
-        const usersCollection = db.collection('users');
-        const instancesCollection = db.collection('instances');
+        await connectDB();
 
-        const tasks = await tasksCollection
-            .find({})
-            .sort({ instanceId: 1, order: 1 })
-            .toArray();
+        const tasks = await Task.find({})
+            .populate('assignee', 'name email')
+            .populate('instance', 'name')
+            .sort({ instance: 1, order: 1 })
+            .lean();
 
-        // Enrich tasks with assignee and instance info
-        const enrichedTasks = await Promise.all(
-            tasks.map(async (task) => {
-                const assignee = await usersCollection.findOne(
-                    { _id: new ObjectId(task.assigneeId) },
-                    { projection: { password: 0 } }
-                );
-
-                const instance = await instancesCollection.findOne({
-                    _id: new ObjectId(task.instanceId),
-                });
-
-                return {
-                    ...task,
-                    assignee,
-                    instanceName: instance?.name || 'Unknown',
-                };
-            })
-        );
+        // Transform to include instanceName for frontend compatibility
+        const enrichedTasks = tasks.map(task => ({
+            ...task,
+            instanceName: task.instance?.name || 'Unknown',
+        }));
 
         return NextResponse.json(enrichedTasks);
     } catch (error) {

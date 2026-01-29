@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
+import Template from '@/models/Template';
 
 // GET - List all templates
 export async function GET() {
     try {
-        const db = await getDb();
-        const templatesCollection = db.collection('templates');
+        await connectDB();
 
-        const templates = await templatesCollection
-            .find({})
+        const templates = await Template.find({})
             .sort({ createdAt: -1 })
-            .toArray();
+            .lean();
 
         return NextResponse.json(templates);
     } catch (error) {
@@ -34,22 +33,15 @@ export async function POST(request) {
             );
         }
 
-        const db = await getDb();
-        const templatesCollection = db.collection('templates');
+        await connectDB();
 
-        const templateData = {
+        const template = await Template.create({
             name,
             description: description || '',
-            tasks, // Array of task names in order
-            createdAt: new Date(),
-        };
+            tasks,
+        });
 
-        const result = await templatesCollection.insertOne(templateData);
-
-        return NextResponse.json({
-            _id: result.insertedId,
-            ...templateData,
-        }, { status: 201 });
+        return NextResponse.json(template, { status: 201 });
     } catch (error) {
         console.error('Create template error:', error);
         return NextResponse.json(

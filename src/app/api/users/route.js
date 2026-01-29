@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
+import User from '@/models/User';
 import { hashPassword } from '@/lib/auth';
-import { ObjectId } from 'mongodb';
 
 // GET - List all users
 export async function GET() {
     try {
-        const db = await getDb();
-        const usersCollection = db.collection('users');
+        await connectDB();
 
-        const users = await usersCollection
-            .find({}, { projection: { password: 0 } })
+        const users = await User.find({})
             .sort({ createdAt: -1 })
-            .toArray();
+            .lean();
 
         return NextResponse.json(users);
     } catch (error) {
@@ -36,11 +34,10 @@ export async function POST(request) {
             );
         }
 
-        const db = await getDb();
-        const usersCollection = db.collection('users');
+        await connectDB();
 
         // Check if email already exists
-        const existingUser = await usersCollection.findOne({ email });
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
             return NextResponse.json(
                 { error: 'Email already exists' },
@@ -52,7 +49,6 @@ export async function POST(request) {
             name,
             email,
             role,
-            createdAt: new Date(),
         };
 
         // Only hash password if provided (for admin users)
@@ -60,13 +56,13 @@ export async function POST(request) {
             userData.password = await hashPassword(password);
         }
 
-        const result = await usersCollection.insertOne(userData);
+        const user = await User.create(userData);
 
-        return NextResponse.json({
-            _id: result.insertedId,
-            ...userData,
-            password: undefined,
-        }, { status: 201 });
+        // Return user without password
+        const userResponse = user.toObject();
+        delete userResponse.password;
+
+        return NextResponse.json(userResponse, { status: 201 });
     } catch (error) {
         console.error('Create user error:', error);
         return NextResponse.json(

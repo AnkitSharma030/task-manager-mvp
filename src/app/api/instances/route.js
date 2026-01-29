@@ -1,48 +1,32 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
+import connectDB from '@/lib/mongodb';
+import Instance from '@/models/Instance';
+import Template from '@/models/Template';
+import Task from '@/models/Task';
+import User from '@/models/User';
 
 // GET - List all instances with their tasks
 export async function GET() {
     try {
-        const db = await getDb();
-        const instancesCollection = db.collection('instances');
-        const tasksCollection = db.collection('tasks');
-        const templatesCollection = db.collection('templates');
-        const usersCollection = db.collection('users');
+        await connectDB();
 
-        const instances = await instancesCollection
-            .find({})
+        const instances = await Instance.find({})
+            .populate('template', 'name')
             .sort({ createdAt: -1 })
-            .toArray();
+            .lean();
 
-        // Enrich instances with template name, tasks, and assignee
+        // Get tasks for each instance
         const enrichedInstances = await Promise.all(
             instances.map(async (instance) => {
-                const template = await templatesCollection.findOne({
-                    _id: new ObjectId(instance.templateId),
-                });
-
-                const tasks = await tasksCollection
-                    .find({ instanceId: instance._id.toString() })
+                const tasks = await Task.find({ instance: instance._id })
+                    .populate('assignee', 'name email')
                     .sort({ order: 1 })
-                    .toArray();
-
-                // Get assignee info for tasks
-                const tasksWithAssignee = await Promise.all(
-                    tasks.map(async (task) => {
-                        const assignee = await usersCollection.findOne(
-                            { _id: new ObjectId(task.assigneeId) },
-                            { projection: { password: 0 } }
-                        );
-                        return { ...task, assignee };
-                    })
-                );
+                    .lean();
 
                 return {
                     ...instance,
-                    templateName: template?.name || 'Unknown',
-                    tasks: tasksWithAssignee,
+                    templateName: instance.template?.name || 'Unknown',
+                    tasks,
                 };
             })
         );
@@ -69,16 +53,10 @@ export async function POST(request) {
             );
         }
 
-        const db = await getDb();
-        const templatesCollection = db.collection('templates');
-        const instancesCollection = db.collection('instances');
-        const tasksCollection = db.collection('tasks');
-        const usersCollection = db.collection('users');
+        await connectDB();
 
         // Verify template exists
-        const template = await templatesCollection.findOne({
-            _id: new ObjectId(templateId),
-        });
+        const template = await Template.findById(templateId);
         if (!template) {
             return NextResponse.json(
                 { error: 'Template not found' },
@@ -87,9 +65,7 @@ export async function POST(request) {
         }
 
         // Verify assignee exists
-        const assignee = await usersCollection.findOne({
-            _id: new ObjectId(assigneeId),
-        });
+        const assignee = await User.findById(assigneeId);
         if (!assignee) {
             return NextResponse.json(
                 { error: 'Assignee not found' },
@@ -98,32 +74,28 @@ export async function POST(request) {
         }
 
         // Create instance
-        const instanceData = {
+        const instance = await Instance.create({
             name,
-            templateId,
-            createdAt: new Date(),
-        };
-
-        const instanceResult = await instancesCollection.insertOne(instanceData);
-        const instanceId = instanceResult.insertedId.toString();
+            template: templateId,
+        });
 
         // Create tasks from template
-        const tasksToInsert = template.tasks.map((taskName, index) => ({
+        const tasksToCreate = template.tasks.map((taskName, index) => ({
             name: taskName,
             order: index + 1,
-            instanceId,
-            assigneeId,
-            createdAt: new Date(),
+            instance: instance._id,
+            assignee: assigneeId,
         }));
 
-        await tasksCollection.insertMany(tasksToInsert);
+        await Task.insertMany(tasksToCreate);
 
         return NextResponse.json({
-            _id: instanceResult.insertedId,
-            ...instanceData,
+            _id: instance._id,
+            name: instance.name,
             templateName: template.name,
-            tasksCreated: tasksToInsert.length,
+            tasksCreated: tasksToCreate.length,
             assigneeName: assignee.name,
+            createdAt: instance.createdAt,
         }, { status: 201 });
     } catch (error) {
         console.error('Create instance error:', error);

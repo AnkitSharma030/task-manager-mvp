@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
+import User from '@/models/User';
 import { comparePassword, signToken } from '@/lib/auth';
 
 export async function POST(request) {
@@ -13,11 +14,10 @@ export async function POST(request) {
             );
         }
 
-        const db = await getDb();
-        const usersCollection = db.collection('users');
+        await connectDB();
 
-        // Find user by email
-        const user = await usersCollection.findOne({ email });
+        // Find user by email and include password
+        const user = await User.findOne({ email }).select('+password');
 
         if (!user) {
             return NextResponse.json(
