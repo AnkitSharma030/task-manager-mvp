@@ -70,9 +70,8 @@ export default function InstancesPage() {
 
             setSuccessMessage(`Instance created! ${data.tasksCreated} tasks assigned to ${data.assigneeName}.`);
 
-            const instancesRes = await authFetch('/api/instances');
-            const instancesData = await instancesRes.json();
-            setInstances(Array.isArray(instancesData) ? instancesData : []);
+            // Optimistic update: Add new instance to state immediately without refetching
+            setInstances(prev => [data, ...prev]);
 
             setTimeout(() => {
                 setShowModal(false);
@@ -195,7 +194,7 @@ export default function InstancesPage() {
                             placeholder="Select a user..."
                             value={formData.assigneeId}
                             onChange={(e) => setFormData({ ...formData, assigneeId: e.target.value })}
-                            options={users.map((u) => ({ value: u._id, label: `${u.name} (${u.role})` }))}
+                            options={users?.map((u) => ({ value: u._id, label: `${u.name} (${u.role})` }))}
                             required
                         />
                         <p className="text-xs text-muted mt-1">All tasks will be assigned to this user</p>

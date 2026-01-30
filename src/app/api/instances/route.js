@@ -15,21 +15,30 @@ export async function GET() {
             .sort({ createdAt: -1 })
             .lean();
 
-        // Get tasks for each instance
-        const enrichedInstances = await Promise.all(
-            instances.map(async (instance) => {
-                const tasks = await Task.find({ instance: instance._id })
-                    .populate('assignee', 'name email')
-                    .sort({ order: 1 })
-                    .lean();
+        // Optimized: Fetch all tasks for these instances in one query
+        const instanceIds = instances.map(i => i._id);
 
-                return {
-                    ...instance,
-                    templateName: instance.template?.name || 'Unknown',
-                    tasks,
-                };
-            })
-        );
+        const allTasks = await Task.find({ instance: { $in: instanceIds } })
+            .populate('assignee', 'name email')
+            .sort({ order: 1 })
+            .lean();
+
+        // Group tasks by instance ID for O(1) lookup during map
+        const tasksByInstance = {};
+        allTasks.forEach(task => {
+            const instanceId = task.instance.toString();
+            if (!tasksByInstance[instanceId]) {
+                tasksByInstance[instanceId] = [];
+            }
+            tasksByInstance[instanceId].push(task);
+        });
+
+        // Attach tasks to instances
+        const enrichedInstances = instances.map(instance => ({
+            ...instance,
+            templateName: instance.template?.name || 'Unknown',
+            tasks: tasksByInstance[instance._id.toString()] || [],
+        }));
 
         return NextResponse.json(enrichedInstances);
     } catch (error) {
@@ -87,12 +96,24 @@ export async function POST(request) {
             assignee: assigneeId,
         }));
 
-        await Task.insertMany(tasksToCreate);
+        const createdTasks = await Task.insertMany(tasksToCreate);
+
+        // Manually construct the response with populated data so we don't need to refetch
+        // We know the assignee details from the check above
+        const tasksWithAssignee = createdTasks.map(task => ({
+            ...task.toObject(),
+            assignee: {
+                _id: assignee._id,
+                name: assignee.name,
+                email: assignee.email
+            }
+        }));
 
         return NextResponse.json({
             _id: instance._id,
             name: instance.name,
             templateName: template.name,
+            tasks: tasksWithAssignee, // Send full tasks array back
             tasksCreated: tasksToCreate.length,
             assigneeName: assignee.name,
             createdAt: instance.createdAt,
