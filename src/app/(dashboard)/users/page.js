@@ -14,7 +14,7 @@ export default function UsersPage() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({ name: '', email: '', role: 'Member' });
+    const [formData, setFormData] = useState({ name: '', email: '', role: 'Member', password: '' });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
 
@@ -131,6 +131,14 @@ export default function UsersPage() {
                         required
                     />
 
+                    <Input
+                        label="Password"
+                        type="password"
+                        placeholder="Enter password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        required
+                    />
                     <Select
                         label="Role"
                         value={formData.role}

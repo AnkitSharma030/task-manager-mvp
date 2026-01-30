@@ -140,7 +140,7 @@ export default function InstancesPage() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Avatar name={task?.assignee?.name} size="sm" />
-                                            <span className="text-muted text-sm">{Ztask?.assignee?.name || 'Unassigned'}</span>
+                                            <span className="text-muted text-sm">{task?.assignee?.name || 'Unassigned'}</span>
                                         </div>
                                     </div>
                                 ))}

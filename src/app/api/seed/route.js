@@ -20,7 +20,7 @@ export async function POST(request) {
         const hashedPassword = await hashPassword('admin123');
         const adminUser = await User.create({
             name: 'Admin',
-            email: 'admin@taskmanager.com',
+            email: 'admin@gmail.com',
             password: hashedPassword,
             role: 'Admin',
         });
@@ -28,7 +28,7 @@ export async function POST(request) {
         return NextResponse.json({
             message: 'Admin user created successfully',
             email: adminUser.email,
-            password: 'admin123', // Only shown once during seed
+            role: adminUser.role,
         });
     } catch (error) {
         console.error('Seed error:', error);

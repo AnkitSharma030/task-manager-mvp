@@ -98,13 +98,9 @@ Go to **Tasks** to see all tasks grouped by instance or user.
 |--------|----------|-------------|
 | POST | `/api/seed` | Create default admin user |
 | POST | `/api/auth/login` | Admin login |
-| POST | `/api/auth/logout` | Logout |
-| GET | `/api/users` | List all users |
-| POST | `/api/users` | Create user |
-| GET | `/api/templates` | List all templates |
-| POST | `/api/templates` | Create template |
-| GET | `/api/instances` | List instances with tasks |
-| POST | `/api/instances` | Create instance (auto-generates tasks) |
+| GET | `/api/users` | List all users | Create user |
+| GET | `/api/templates` | List all templates | Create template |
+| GET | `/api/instances` | List instances with tasks | Create instance (auto-generates tasks) |
 | GET | `/api/tasks` | List all tasks |
 
 ## Project Structure
@@ -137,6 +133,32 @@ src/
 └── middleware.js             # Route protection
 ```
 
-## License
 
-MIT
+## Reusable Components
+
+To ensure code consistency and avoid duplication, please use the following reusable components located in `src/components`:
+
+### Core Layout
+- **Sidebar** (`src/components/Sidebar.js`): Main navigation sidebar for the dashboard.
+
+### UI Library (`src/components/ui`)
+Use these pre-built UI components for consistent styling across the application:
+
+- **Badge** (`Badge.js`): Status indicators and labels.
+- **Button** (`Button.js`): Standardized buttons with various variants.
+- **Card** (`Card.js`): Container for grouping content.
+- **Input** (`Input.js`): Form input fields with consistent styling.
+- **Modal** (`Modal.js`): Dialog overlays for user interactions.
+- **PageHeader** (`PageHeader.js`): Standard top header for dashboard pages.
+- **Table** (`Table.js`): Data tables with consistent layout.
+
+## Admin Credentials
+
+Use the following credentials to access the admin dashboard:
+
+| Role  | Email | Password |
+|-------|-------|----------|
+| **Admin** | `admin@gmail.com` | `admin123` |
+
+> **Note:** These are default seeded credentials. Please change them in production.
+

@@ -8,7 +8,7 @@ export async function GET() {
     try {
         await connectDB();
 
-        const users = await User.find({ role: 'Member' })
+        const users = await User.find({})
             .sort({ createdAt: -1 })
             .lean();
 
@@ -55,6 +55,8 @@ export async function POST(request) {
         if (password && role === 'Admin') {
             userData.password = await hashPassword(password);
         }
+
+        console.log("Admin data", userData);
 
         const user = await User.create(userData);
 
