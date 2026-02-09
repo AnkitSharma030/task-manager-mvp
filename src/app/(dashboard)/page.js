@@ -7,7 +7,7 @@ import { CheckSquare, FilePlus, Layers, LayersPlus, LayoutTemplate, User, UserPl
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
-    const { authFetch } = useAuth();
+    const { authFetch, user } = useAuth();
     const router = useRouter();
     const [stats, setStats] = useState({
         users: 0,
@@ -16,6 +16,16 @@ export default function DashboardPage() {
         tasks: 0,
     });
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (user && user.role !== 'Admin') {
+            router.push('/tasks');
+        }
+    }, [user, router]);
+
+    if (user && user.role !== 'Admin') {
+        return <LoadingState message="Redirecting to your tasks..." />;
+    }
 
     useEffect(() => {
         async function fetchStats() {

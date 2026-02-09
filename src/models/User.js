@@ -21,6 +21,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['Admin', 'Member'],
         default: 'Member',
+        enum: ['Admin', 'Member', 'Marketer', 'Reviewer', 'Designer'],
     },
 }, {
     timestamps: true,

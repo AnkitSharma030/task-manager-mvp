@@ -83,17 +83,24 @@ export default function Sidebar() {
 
                 {/* Navigation */}
                 <nav className="space-y-1">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setIsOpen(false)}
-                            className={`sidebar-link ${pathname === item.href ? 'active' : ''}`}
-                        >
-                            {item.icon}
-                            {item.name}
-                        </Link>
-                    ))}
+                    {navItems
+                        .filter(item => {
+                            if (!user) return false;
+                            if (user.role === 'Admin') return true;
+                            // Non-admins only see Tasks
+                            return item.name === 'Tasks';
+                        })
+                        .map((item) => (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                onClick={() => setIsOpen(false)}
+                                className={`sidebar-link ${pathname === item.href ? 'active' : ''}`}
+                            >
+                                {item.icon}
+                                {item.name}
+                            </Link>
+                        ))}
                 </nav>
 
                 {/* User info & Logout */}

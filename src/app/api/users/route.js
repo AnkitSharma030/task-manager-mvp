@@ -4,7 +4,14 @@ import User from '@/models/User';
 import { hashPassword } from '@/lib/auth';
 
 // GET - List all users
-export async function GET() {
+// GET - List all users
+export async function GET(request) {
+    // Allow any authenticated user to fetch users (needed for assigning reviewers)
+    // Middleware adds x-user-id header if authenticated
+    const userId = request.headers.get('x-user-id');
+    if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     try {
         await connectDB();
 
@@ -24,6 +31,10 @@ export async function GET() {
 
 // POST - Create new user
 export async function POST(request) {
+    const roleHeader = request.headers.get('x-user-role');
+    if (roleHeader !== 'Admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     try {
         const { name, email, role, password } = await request.json();
 
@@ -49,15 +60,13 @@ export async function POST(request) {
             name,
             email,
             role,
+            password: await hashPassword(password),
         };
 
         // Only hash password if provided (for admin users)
         if (password && role === 'Admin') {
             userData.password = await hashPassword(password);
         }
-
-        console.log("Admin data", userData);
-
         const user = await User.create(userData);
 
         // Return user without password

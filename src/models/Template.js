@@ -11,16 +11,22 @@ const templateSchema = new mongoose.Schema({
         default: '',
         trim: true,
     },
-    tasks: {
-        type: [String],
-        required: [true, 'At least one task is required'],
-        validate: {
-            validator: function (v) {
-                return v && v.length > 0;
-            },
-            message: 'At least one task is required',
+    tasks: [{
+        name: {
+            type: String,
+            required: true,
+            trim: true
         },
-    },
+        role: {
+            type: String,
+            required: true,
+            enum: ['Marketer', 'Reviewer', 'Designer', 'Member']
+        },
+        order: {
+            type: Number,
+            required: true
+        }
+    }],
 }, {
     timestamps: true,
 });

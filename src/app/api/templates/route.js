@@ -3,7 +3,11 @@ import connectDB from '@/lib/mongodb';
 import Template from '@/models/Template';
 
 // GET - List all templates
-export async function GET() {
+export async function GET(request) {
+    const role = request.headers.get('x-user-role');
+    if (role !== 'Admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     try {
         await connectDB();
 
@@ -23,6 +27,10 @@ export async function GET() {
 
 // POST - Create new template
 export async function POST(request) {
+    const role = request.headers.get('x-user-role');
+    if (role !== 'Admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     try {
         const { name, description, tasks } = await request.json();
 

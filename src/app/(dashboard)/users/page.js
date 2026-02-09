@@ -14,7 +14,7 @@ export default function UsersPage() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({ name: '', email: '', role: 'Member', password: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', role: '', password: '' });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
 
@@ -144,8 +144,11 @@ export default function UsersPage() {
                         value={formData.role}
                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                         options={[
-                            { value: 'Member', label: 'Member' },
-                            { value: 'Admin', label: 'Admin' },
+                            // { value: 'Member', label: 'Member' },
+                            // { value: 'Admin', label: 'Admin' },
+                            { value: 'Marketer', label: 'Marketer' },
+                            { value: 'Reviewer', label: 'Reviewer' },
+                            { value: 'Designer', label: 'Designer' },
                         ]}
                     />
 

@@ -6,7 +6,11 @@ import Task from '@/models/Task';
 import User from '@/models/User';
 
 // GET - List all instances with their tasks
-export async function GET() {
+export async function GET(request) {
+    const role = request.headers.get('x-user-role');
+    if (role !== 'Admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     try {
         await connectDB();
 
@@ -52,12 +56,18 @@ export async function GET() {
 
 // POST - Create new instance and generate tasks
 export async function POST(request) {
+    const role = request.headers.get('x-user-role');
+    if (role !== 'Admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     try {
-        const { name, templateId, assigneeId } = await request.json();
+        const { name, templateId, assignees } = await request.json();
 
-        if (!name || !templateId || !assigneeId) {
+        // assignees is expected to be an object: { "Marketer": "userId1", "Reviewer": "userId2", ... }
+
+        if (!name || !templateId || !assignees) {
             return NextResponse.json(
-                { error: 'Name, template, and assignee are required' },
+                { error: 'Name, template, and assignees are required' },
                 { status: 400 }
             );
         }
@@ -73,12 +83,14 @@ export async function POST(request) {
             );
         }
 
-        // Verify assignee exists
-        const assignee = await User.findById(assigneeId);
-        if (!assignee) {
+        // Validate that all roles required by the template are provided in assignees
+        const requiredRoles = [...new Set(template.tasks.map(t => t.role))];
+        const missingRoles = requiredRoles.filter(role => !assignees[role]);
+
+        if (missingRoles.length > 0) {
             return NextResponse.json(
-                { error: 'Assignee not found' },
-                { status: 404 }
+                { error: `Missing assignees for roles: ${missingRoles.join(', ')}` },
+                { status: 400 }
             );
         }
 
@@ -89,33 +101,29 @@ export async function POST(request) {
         });
 
         // Create tasks from template
-        const tasksToCreate = template.tasks.map((taskName, index) => ({
-            name: taskName,
-            order: index + 1,
-            instance: instance._id,
-            assignee: assigneeId,
-        }));
+        const tasksToCreate = template.tasks.map((templateTask, index) => {
+            const assigneeId = assignees[templateTask.role];
 
-        const createdTasks = await Task.insertMany(tasksToCreate);
+            // First task is Assigned, others are Pending
+            const initialStatus = index === 0 ? 'Assigned' : 'Pending';
 
-        // Manually construct the response with populated data so we don't need to refetch
-        // We know the assignee details from the check above
-        const tasksWithAssignee = createdTasks.map(task => ({
-            ...task.toObject(),
-            assignee: {
-                _id: assignee._id,
-                name: assignee.name,
-                email: assignee.email
-            }
-        }));
+            return {
+                name: templateTask.name,
+                order: templateTask.order,
+                instance: instance._id,
+                assignee: assigneeId,
+                status: initialStatus
+            };
+        });
+
+        await Task.insertMany(tasksToCreate);
 
         return NextResponse.json({
             _id: instance._id,
             name: instance.name,
             templateName: template.name,
-            tasks: tasksWithAssignee, // Send full tasks array back
             tasksCreated: tasksToCreate.length,
-            assigneeName: assignee.name,
+            assignees,
             createdAt: instance.createdAt,
         }, { status: 201 });
     } catch (error) {

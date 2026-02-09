@@ -5,16 +5,29 @@ import { useAuth } from '@/context/AuthContext';
 import {
     PageHeader, Button, Alert, LoadingState, EmptyState,
     Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter,
-    Modal, ModalFooter, Input, Badge, IconButton
+    Modal, ModalFooter, Input, Badge, IconButton, Select
 } from '@/components/ui';
 
 import { Minus, Plus } from 'lucide-react';
+
+const ROLES = [
+    { value: 'Marketer', label: 'Marketer' },
+    { value: 'Reviewer', label: 'Reviewer' },
+    { value: 'Designer', label: 'Designer' },
+    { value: 'Member', label: 'Member' },
+];
+
 export default function TemplatesPage() {
     const { authFetch } = useAuth();
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({ name: '', description: '', tasks: [''] });
+    // Tasks is now an array of objects
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        tasks: [{ name: '', role: 'Marketer' }]
+    });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
 
@@ -39,7 +52,7 @@ export default function TemplatesPage() {
         setError('');
         setSubmitting(true);
 
-        const filteredTasks = formData.tasks.filter((t) => t.trim() !== '');
+        const filteredTasks = formData.tasks.filter((t) => t.name.trim() !== '');
 
         if (filteredTasks?.length === 0) {
             setError('At least one task is required');
@@ -54,7 +67,12 @@ export default function TemplatesPage() {
                 body: JSON.stringify({
                     name: formData.name,
                     description: formData.description,
-                    tasks: filteredTasks,
+                    // Send tasks with role and order
+                    tasks: filteredTasks.map((t, i) => ({
+                        name: t.name,
+                        role: t.role,
+                        order: i + 1
+                    })),
                 }),
             });
 
@@ -66,7 +84,7 @@ export default function TemplatesPage() {
 
             setTemplates([data, ...templates]);
             setShowModal(false);
-            setFormData({ name: '', description: '', tasks: [''] });
+            setFormData({ name: '', description: '', tasks: [{ name: '', role: 'Marketer' }] });
         } catch (err) {
             setError(err.message);
         } finally {
@@ -74,7 +92,10 @@ export default function TemplatesPage() {
         }
     };
 
-    const addTask = () => setFormData({ ...formData, tasks: [...formData.tasks, ''] });
+    const addTask = () => setFormData({
+        ...formData,
+        tasks: [...formData.tasks, { name: '', role: 'Marketer' }]
+    });
 
     const removeTask = (index) => {
         if (formData.tasks.length > 1) {
@@ -82,9 +103,15 @@ export default function TemplatesPage() {
         }
     };
 
-    const updateTask = (index, value) => {
+    const updateTaskName = (index, value) => {
         const newTasks = [...formData.tasks];
-        newTasks[index] = value;
+        newTasks[index].name = value;
+        setFormData({ ...formData, tasks: newTasks });
+    };
+
+    const updateTaskRole = (index, value) => {
+        const newTasks = [...formData.tasks];
+        newTasks[index].role = value;
         setFormData({ ...formData, tasks: newTasks });
     };
 
@@ -119,20 +146,23 @@ export default function TemplatesPage() {
                                     <CardTitle>{template?.name}</CardTitle>
                                     <CardDescription>{template?.description || 'No description'}</CardDescription>
                                 </div>
-                                <Badge variant="primary">{template?.tasks?.length} tasks</Badge>
+                                <Badge variant="primary">{template?.tasks?.length} steps</Badge>
                             </CardHeader>
 
                             <CardContent className="space-y-2">
                                 {template?.tasks?.slice(0, 4).map((task, index) => (
-                                    <div key={index} className="flex items-center gap-2 text-sm">
-                                        <span className="w-6 h-6 rounded-full bg-muted/20 flex items-center justify-center text-xs text-muted">
-                                            {index + 1}
+                                    <div key={index} className="flex items-start gap-2 text-sm">
+                                        <span className="min-w-6 h-6 rounded-full bg-muted/20 flex items-center justify-center text-xs text-muted mt-0.5">
+                                            {task.order || index + 1}
                                         </span>
-                                        <span className="text-foreground">{task}</span>
+                                        <div className="flex-1">
+                                            <span className="text-foreground block">{task.name}</span>
+                                            <span className="text-secondary text-xs">{task.role}</span>
+                                        </div>
                                     </div>
                                 ))}
                                 {template?.tasks?.length > 4 && (
-                                    <p className="text-muted text-sm ml-8">+{template?.tasks?.length - 4} more tasks</p>
+                                    <p className="text-muted text-sm ml-8">+{template?.tasks?.length - 4} more steps</p>
                                 )}
                             </CardContent>
 
@@ -164,24 +194,36 @@ export default function TemplatesPage() {
                     />
 
                     <div>
-                        <label className="label">Tasks</label>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                        <label className="label">Workflow Steps</label>
+                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                             {formData.tasks.map((task, index) => (
-                                <div key={index} className="flex gap-2">
-                                    <span className="flex items-center justify-center w-8 h-10 text-sm text-muted">
+                                <div key={index} className="flex gap-2 items-start">
+                                    <span className="flex items-center justify-center w-8 h-10 text-sm text-muted pt-2">
                                         {index + 1}.
                                     </span>
-                                    <input
-                                        type="text"
-                                        className="input flex-1"
-                                        placeholder={`Task ${index + 1}`}
-                                        value={task}
-                                        onChange={(e) => updateTask(index, e.target.value)}
-                                    />
+                                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <Input
+                                            placeholder={`Task Name`}
+                                            value={task.name}
+                                            onChange={(e) => updateTaskName(index, e.target.value)}
+                                            required
+                                            className="mb-0"
+                                        />
+                                        <select
+                                            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                            value={task.role}
+                                            onChange={(e) => updateTaskRole(index, e.target.value)}
+                                        >
+                                            {ROLES.map(role => (
+                                                <option key={role.value} value={role.value}>{role.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                     {formData.tasks.length > 1 && (
                                         <IconButton
+                                            type="button"
                                             onClick={() => removeTask(index)}
-                                            className="text-danger hover:bg-danger/10"
+                                            className="text-danger hover:bg-danger/10 mt-1"
                                         >
                                             <Minus className="w-4 h-4" />
                                         </IconButton>
@@ -195,7 +237,7 @@ export default function TemplatesPage() {
                             className="mt-2 text-sm text-primary hover:underline flex items-center gap-1 cursor-pointer"
                         >
                             <Plus className="w-4 h-4" />
-                            Add another task
+                            Add another step
                         </button>
                     </div>
 

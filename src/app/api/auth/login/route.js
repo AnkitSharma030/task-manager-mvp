@@ -27,12 +27,12 @@ export async function POST(request) {
         }
 
         // Check if user is admin
-        if (user.role !== 'Admin') {
-            return NextResponse.json(
-                { error: 'Only admin users can login' },
-                { status: 403 }
-            );
-        }
+        // if (user.role !== 'Admin') {
+        //     return NextResponse.json(
+        //         { error: 'Only admin users can login' },
+        //         { status: 403 }
+        //     );
+        // }
 
         // Verify password
         const isValid = await comparePassword(password, user.password);
@@ -56,7 +56,7 @@ export async function POST(request) {
             message: 'Login successful',
             token,
             user: {
-                id: user._id.toString(),
+                _id: user._id.toString(),
                 name: user.name,
                 email: user.email,
                 role: user.role,

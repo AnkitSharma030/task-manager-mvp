@@ -36,9 +36,10 @@ export async function middleware(request) {
         try {
             const { payload } = await jwtVerify(token, secret);
 
-            if (payload.role !== 'Admin') {
-                return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-            }
+            // Removed strict Admin check to allow role-based access in individual routes
+            // if (payload.role !== 'Admin') {
+            //     return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+            // }
 
             // Add user info to request headers
             const response = NextResponse.next();

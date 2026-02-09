@@ -16,7 +16,8 @@ export default function InstancesPage() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({ name: '', templateId: '', assigneeId: '' });
+    // Updated formData to hold assignees map instead of single assigneeId
+    const [formData, setFormData] = useState({ name: '', templateId: '', assignees: {} });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
@@ -68,14 +69,14 @@ export default function InstancesPage() {
                 throw new Error(data.error || 'Failed to create instance');
             }
 
-            setSuccessMessage(`Instance created! ${data.tasksCreated} tasks assigned to ${data.assigneeName}.`);
+            setSuccessMessage(`Instance created! ${data.tasksCreated} tasks created.`);
 
-            // Optimistic update: Add new instance to state immediately without refetching
+            // Optimistic update
             setInstances(prev => [data, ...prev]);
 
             setTimeout(() => {
                 setShowModal(false);
-                setFormData({ name: '', templateId: '', assigneeId: '' });
+                setFormData({ name: '', templateId: '', assignees: {} });
                 setSuccessMessage('');
             }, 2000);
         } catch (err) {
@@ -86,6 +87,21 @@ export default function InstancesPage() {
     };
 
     const selectedTemplate = templates.find((t) => t._id === formData.templateId);
+
+    // Derived state: Get unique roles required by the selected template
+    const requiredRoles = selectedTemplate
+        ? [...new Set(selectedTemplate.tasks.map(t => t.role))]
+        : [];
+
+    const handleAssigneeChange = (role, userId) => {
+        setFormData(prev => ({
+            ...prev,
+            assignees: {
+                ...prev.assignees,
+                [role]: userId
+            }
+        }));
+    };
 
     if (loading) {
         return <LoadingState message="Loading instances..." />;
@@ -133,13 +149,20 @@ export default function InstancesPage() {
                             <CardContent className="space-y-2">
                                 {instance?.tasks?.map((task) => (
                                     <div key={task?._id} className="task-item">
-                                        <span className="task-order">{task?.order}</span>
-                                        <div className="flex-1">
-                                            <span className="text-foreground">{task?.name}</span>
+                                        <div className="flex items-center gap-3 flex-1">
+                                            <span className="task-order">{task?.order}</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-foreground">{task?.name}</span>
+                                                <span className="text-xs text-muted">
+                                                    STATUS: <span className="font-medium text-primary">{task?.status}</span>
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Avatar name={task?.assignee?.name} size="sm" />
-                                            <span className="text-muted text-sm">{task?.assignee?.name || 'Unassigned'}</span>
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-muted text-sm">{task?.assignee?.name || 'Unassigned'}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -170,35 +193,52 @@ export default function InstancesPage() {
                         label="Select Template"
                         placeholder="Choose a template..."
                         value={formData.templateId}
-                        onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, templateId: e.target.value, assignees: {} })}
                         options={templates.map((t) => ({ value: t._id, label: `${t.name} (${t.tasks.length} tasks)` }))}
                         required
                     />
 
                     {selectedTemplate && (
-                        <div className="p-4 rounded-xl bg-muted/10 border border-border">
-                            <p className="text-sm text-muted mb-2">Tasks that will be created:</p>
-                            <div className="space-y-1">
-                                {selectedTemplate.tasks.map((task, index) => (
-                                    <div key={index} className="text-sm text-foreground flex items-center gap-2">
-                                        <span className="text-muted">{index + 1}.</span> {task}
-                                    </div>
-                                ))}
+                        <div className="space-y-4">
+                            <div className="p-4 rounded-xl bg-muted/10 border border-border">
+                                <p className="text-sm font-medium mb-3">Assign Roles</p>
+                                <div className="space-y-3">
+                                    {requiredRoles.map((role) => (
+                                        <div key={role}>
+                                            <Select
+                                                label={`Assign ${role}`}
+                                                placeholder={`Select a ${role}...`}
+                                                value={formData.assignees[role] || ''}
+                                                onChange={(e) => handleAssigneeChange(role, e.target.value)}
+                                                options={
+                                                    users
+                                                        // Filter users by role, or show all if role is Member (generic)
+                                                        // Or just show all users sorted such that matching roles come first?
+                                                        // For MVP, strict filtering helps reduce error.
+                                                        .filter(u => u.role === role || u.role === 'Admin' || (role === 'Member' && u.role === 'Member'))
+                                                        .map((u) => ({ value: u._id, label: `${u.name} (${u.role})` }))
+                                                }
+                                                required
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-xl bg-muted/10 border border-border">
+                                <p className="text-sm text-muted mb-2">Tasks Preview:</p>
+                                <div className="space-y-1">
+                                    {selectedTemplate.tasks.map((task, index) => (
+                                        <div key={index} className="text-sm text-foreground flex items-center gap-2">
+                                            <span className="text-muted">{index + 1}.</span>
+                                            <span>{task.name}</span>
+                                            <span className="text-xs px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground">{task.role}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
-
-                    <div>
-                        <Select
-                            label="Assign To (Doer)"
-                            placeholder="Select a user..."
-                            value={formData.assigneeId}
-                            onChange={(e) => setFormData({ ...formData, assigneeId: e.target.value })}
-                            options={users?.map((u) => ({ value: u._id, label: `${u.name} (${u.role})` }))}
-                            required
-                        />
-                        <p className="text-xs text-muted mt-1">All tasks will be assigned to this user</p>
-                    </div>
 
                     <ModalFooter>
                         <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowModal(false)}>

@@ -54,7 +54,7 @@ export default function LoginPage() {
                 {/* Logo */}
                 <div className="text-center mb-8">
                     <h1 className="text-2xl font-bold text-foreground">Task Manager</h1>
-                    <p className="text-muted mt-2">Admin Login</p>
+                    <p className="text-muted mt-2">Login</p>
                 </div>
 
                 {/* Error message */}
@@ -95,11 +95,11 @@ export default function LoginPage() {
                 </form>
 
                 {/* Info box */}
-                <Alert variant="info" className="mt-6">
+                {/* <Alert variant="info" className="mt-6">
                     <p className="text-center">
                         <span className="font-medium">Admin Only:</span> Only Admin can access this system.
                     </p>
-                </Alert>
+                </Alert> */}
             </div>
         </div>
     );
